@@ -18,6 +18,7 @@
 #include "VideoCommon/LookUpTables.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/TextureCacheBase.h"
 
 namespace DX11
 {
@@ -184,6 +185,46 @@ void TextureCache::TCacheEntry::FromRenderTarget(u32 dstAddr, unsigned int dstFo
 		TextureCache::MakeRangeDynamic(dstAddr, (u32)encoded_size);
 
 		this->hash = hash;
+	}
+
+	if (bpmem.copyMipMapStrideChannels = 256)
+	{
+		TCacheEntryBase* t_entry;
+		TextureCache::xyz(dstAddr, (u32)64 * 1024, &t_entry);
+
+		if (t_entry->native_width == 1024)
+		{
+			u32 y = (dstAddr - t_entry->addr) / 0x10000;
+			u32 x = ((dstAddr - t_entry->addr) % 0x10000) / 0x100;
+
+			//ERROR_LOG(VIDEO, "dstAddr: 0x%08x/0x%08x, x/y: %d/%d", dstAddr, t_entry->addr, x, y);
+			u8* dst = Memory::GetPointer(dstAddr);
+
+			t_entry->hash = 0;
+
+			if (((TCacheEntry *)t_entry)->usage == D3D11_USAGE_DYNAMIC || ((TCacheEntry *)t_entry)->usage == D3D11_USAGE_STAGING)
+			{
+				ERROR_LOG(VIDEO, "true: %d", ((TCacheEntry *)t_entry)->usage);
+			}
+			else
+			{
+				ERROR_LOG(VIDEO, "false: %d", ((TCacheEntry *)t_entry)->usage);
+
+				D3D11_BOX dest_region = CD3D11_BOX(x * 32, y * 32, 0, x * 32 + 32, y * 32 + 32, 1);
+				for (u32 i = 0; i < t_entry->native_levels; ++i)
+				{
+					D3D::context->UpdateSubresource(((TCacheEntry *)t_entry)->texture->GetTex(), i/*level*/, &dest_region, texture->GetTex()/*TextureCache::temp*/, 4 * 32/*expanded_width*/, 4 * 32 * 32/*expanded_width*height*/);
+				}
+			}
+			/*
+			01:04:009 TextureCache.cpp:209 E[Video]: dstAddr: 0x1036a460/0x10368560, x/y: 31/0
+			01:04:009 TextureCache.cpp:209 E[Video]: dstAddr: 0x1037a360/0x10368560, x/y: 30/1
+			01:04:009 TextureCache.cpp:209 E[Video]: dstAddr: 0x1036a360/0x10368560, x/y: 30/0
+			01:04:009 TextureCache.cpp:209 E[Video]: dstAddr: 0x10379460/0x10368560, x/y: 15/1
+			01:04:009 TextureCache.cpp:209 E[Video]: dstAddr: 0x10379560/0x10368560, x/y: 16/1
+			01:04:010 TextureCache.cpp:209 E[Video]: dstAddr: 0x10379660/0x10368560, x/y: 17/1
+			*/
+		}
 	}
 }
 

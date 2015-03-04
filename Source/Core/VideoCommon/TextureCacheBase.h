@@ -107,6 +107,7 @@ public:
 
 	static void Invalidate();
 	static void MakeRangeDynamic(u32 start_address, u32 size);
+	static void TextureCache::xyz(u32 start_address, u32 size, TCacheEntryBase** entry);
 
 	virtual TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) = 0;
 

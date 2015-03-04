@@ -196,6 +196,27 @@ void TextureCache::MakeRangeDynamic(u32 start_address, u32 size)
 	}
 }
 
+void TextureCache::xyz(u32 start_address, u32 size, TCacheEntryBase** entry)
+{
+	TexCache::iterator
+		iter = textures.begin();
+
+	*entry = iter->second;
+
+	while (iter != textures.end())
+	{
+		if (iter->second->OverlapsMemoryRange(start_address, size) && iter->second->native_width == 1024)
+		{
+			*entry = iter->second;
+			return;
+		}
+		else
+		{
+			++iter;
+		}
+	}
+}
+
 bool TextureCache::TCacheEntryBase::OverlapsMemoryRange(u32 range_address, u32 range_size) const
 {
 	if (addr + size_in_bytes <= range_address)
@@ -386,9 +407,12 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 		else
 		{
 			// For normal textures, all texture parameters need to match
-			if (entry->hash == (tex_hash ^ tlut_hash) && entry->format == full_format && entry->native_levels >= tex_levels &&
-				entry->native_width == nativeW && entry->native_height == nativeH)
+			if ((entry->hash == 0) || (entry->hash == (tex_hash ^ tlut_hash) && entry->format == full_format && entry->native_levels >= tex_levels &&
+				entry->native_width == nativeW && entry->native_height == nativeH))
 			{
+				//if (entry->hash == 0)
+				//	ERROR_LOG(VIDEO, "width: %4d", entry->native_width);
+
 				return ReturnEntry(stage, entry);
 			}
 		}
