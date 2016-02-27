@@ -1305,7 +1305,7 @@ u64 SimulateDiscReadTime(u64 offset, u32 length)
 	// 1MB past the end of the last read *or* asks for data before the last
 	// read. It assumes the buffer is only used when reading small amounts
 	// forward.
-	if (offset + length > s_last_read_offset + 1024 * 1024 || offset < s_last_read_offset)
+	if (offset > s_last_read_offset + 1024 * 1024 || offset < s_last_read_offset)
 	{
 		// No buffer; just use the simple seek time + read time.
 		DEBUG_LOG(DVDINTERFACE, "Seeking %" PRId64 " bytes",
@@ -1327,7 +1327,20 @@ u64 SimulateDiscReadTime(u64 offset, u32 length)
 		u64 buffer_read_duration = length *
 			(SystemTimers::GetTicksPerSecond() / BUFFER_TRANSFER_RATE);
 
-		if (current_time > buffer_fill_time)
+		// The 1MB buffer is filled already and partly overlaps the current read
+		if (offset + length > s_last_read_offset + 1024 * 1024 && s_last_read_time + CalculateRawDiscReadTime(s_last_read_offset, 1024 * 1024) <= current_time)
+		{
+			// Calculate the time for copying the data that is already in the buffer
+			buffer_read_duration = ((offset - s_last_read_offset) * SystemTimers::GetTicksPerSecond()) / BUFFER_TRANSFER_RATE;
+			// Calculate the time for reading the rest of the data, including a seek
+			disk_read_duration = CalculateRawDiscReadTime(s_last_read_offset + 1024 * 1024, offset + length - (s_last_read_offset + 1024 * 1024)) + SystemTimers::GetTicksPerSecond() / 1000 * DISC_ACCESS_TIME_MS;
+
+			DEBUG_LOG(DVDINTERFACE, "something at %" PRIx64, offset);
+			// Assume the worst case that copying and reading is not possible at the same time, if the buffer is fully filled
+			ticks_until_completion = buffer_read_duration + disk_read_duration;
+			s_last_read_time = current_time + ticks_until_completion;
+		}
+		else if (current_time > buffer_fill_time)
 		{
 			DEBUG_LOG(DVDINTERFACE, "Fast buffer read at %" PRIx64, offset);
 			ticks_until_completion = buffer_read_duration;
