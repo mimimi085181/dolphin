@@ -29,6 +29,7 @@ static u8 s_controller_type[MAX_SI_CHANNELS] = { ControllerTypes::CONTROLLER_NON
 static u8 s_controller_rumble[4];
 
 static std::mutex s_mutex;
+static std::mutex test_mutex;
 static u8 s_controller_payload[37];
 static u8 s_controller_payload_swap[37];
 
@@ -277,6 +278,8 @@ static bool CheckDeviceAccess(libusb_device* device)
 
 static void AddGCAdapter(libusb_device* device)
 {
+	std::lock_guard<std::mutex> lk(test_mutex);
+
 	libusb_config_descriptor *config = nullptr;
 	libusb_get_config_descriptor(device, 0, &config);
 	for (u8 ic = 0; ic < config->bNumInterfaces; ic++)
@@ -307,6 +310,8 @@ static void AddGCAdapter(libusb_device* device)
 	if (s_detect_callback != nullptr)
 		s_detect_callback();
 	ResetRumble();
+
+	StopScanThread();
 }
 
 void Shutdown()
@@ -329,6 +334,8 @@ void Shutdown()
 
 void Reset()
 {
+	std::lock_guard<std::mutex> lk(test_mutex);
+
 	if (!s_detected)
 		return;
 
@@ -351,6 +358,8 @@ void Reset()
 	if (s_detect_callback != nullptr)
 		s_detect_callback();
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
+
+	StartScanThread();
 }
 
 void Input(int chan, GCPadStatus* pad)
