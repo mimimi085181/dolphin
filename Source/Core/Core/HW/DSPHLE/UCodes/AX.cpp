@@ -18,6 +18,7 @@
 
 AXUCode::AXUCode(DSPHLE* dsphle, u32 crc)
 	: UCodeInterface(dsphle, crc)
+	, m_work_available(false)
 	, m_cmdlist_size(0)
 {
 	WARN_LOG(DSPHLE, "Instantiating AXUCode: crc=%08x", crc);
@@ -608,9 +609,7 @@ void AXUCode::HandleMail(u32 mail)
 	if (next_is_cmdlist)
 	{
 		CopyCmdList(mail, cmdlist_size);
-		HandleCommandList();
-		m_cmdlist_size = 0;
-		SignalWorkEnd();
+		m_work_available = true;
 	}
 	else if (m_upload_setup_in_progress)
 	{
@@ -669,6 +668,12 @@ void AXUCode::Update()
 	{
 		m_mail_handler.PushMail(DSP_RESUME);
 		DSP::GenerateDSPInterruptFromDSPEmu(DSP::INT_DSP);
+	}
+	else if (m_work_available)
+	{
+		HandleCommandList();
+		m_cmdlist_size = 0;
+		SignalWorkEnd();
 	}
 }
 
