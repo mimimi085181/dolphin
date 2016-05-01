@@ -1159,7 +1159,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 	bool copy_to_ram = !g_ActiveConfig.bSkipEFBCopyToRam;
 	bool copy_to_vram = true;
 
-	if (copy_to_ram)
+	if (copy_to_ram || ((tex_w == 64 || tex_w == 128 || tex_w == 256) && !isIntensity && tex_h != 1 && (dstFormat == 6 || dstFormat == 32)))
 	{
 		g_texture_cache->CopyEFB(
 			dst,
