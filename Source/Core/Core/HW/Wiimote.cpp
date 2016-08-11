@@ -88,6 +88,10 @@ void InterruptChannel(int number, u16 channel_id, const void* data, u32 size)
 // This function is called periodically by the Core to update Wiimote state.
 void Update(int number, bool connected)
 {
+  static u32 counter = 0;
+  ERROR_LOG(VIDEO, "Poll: %7d, wiimote: %d, connected: %d", counter, number, connected);
+  counter++;
+
   if (connected)
   {
     if (WIIMOTE_SRC_EMU & g_wiimote_sources[number])
