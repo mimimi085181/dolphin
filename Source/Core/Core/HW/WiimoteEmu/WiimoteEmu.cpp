@@ -638,6 +638,9 @@ void Wiimote::Update()
 
   const ReportFeatures& rptf = reporting_mode_features[m_reporting_mode - WM_REPORT_CORE];
   s8 rptf_size = rptf.size;
+
+  ERROR_LOG(VIDEO, "Reporting mode: %02x, size: %3u, wiimote: %u", m_reporting_mode, rptf_size, m_index);
+
   if (Movie::IsPlayingInput() &&
       Movie::PlayWiimote(m_index, data, rptf, m_extension->active_extension, m_ext_key))
   {
